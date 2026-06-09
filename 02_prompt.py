@@ -3,10 +3,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 load_dotenv()
-
+#언어모델(gemini-2.5-flash)
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash")
 
-# 프롬프트 템플릿 정의
+# 프롬프트 템플릿 정의(틀만 만들고 값만 바꿀수있음)
 prompt = ChatPromptTemplate.from_messages([
     ("system", "너는 채용공고 분석 전문가야. 지원자의 이력서와 채용공고를 비교해서 적합도를 분석해줘."),
     ("human", "채용공고: {job_description}\n\n내 이력서 요약: {resume}")
