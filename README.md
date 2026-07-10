@@ -27,12 +27,12 @@
 - 07_langchain_ollama.py : LangChain + Ollama 연동
 - 08_streamlit_app.py : Streamlit UI
 - 09_eval.py : 검색 품질 평가 (hit@1, hit@k 측정)
-- data/jobs.txt : 실제 채용공고 33건 (2026-07 사람인 수집, 출처 URL 포함)
+- data/jobs.txt : 실제 채용공고 49건 (2026-07 사람인 수집, 출처 URL 포함)
 - data/eval_set.json : 검색 평가용 질문-정답 10문항
 
 ## 검색 품질 평가
 
-실제 채용공고 33건(AI 엔지니어, 데이터 사이언티스트, 타 직군 혼합)으로
+실제 채용공고 49건(AI 엔지니어, 데이터 사이언티스트, 타 직군 혼합)으로
 질문-정답 평가셋 10문항을 만들어 검색 정확도를 측정했습니다.
 
 ```bash
