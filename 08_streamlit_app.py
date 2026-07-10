@@ -15,7 +15,8 @@ st.set_page_config(page_title="JobFit - 채용공고 분석기", page_icon="💼
 # =============================================
 @st.cache_resource
 def load_vectorstore():
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
+    # bge-m3: 한국어 검색 품질 개선 (hit@1 40% -> 90%, 09_eval.py 참고)
+    embeddings = OllamaEmbeddings(model="bge-m3")
     with open("data/jobs.txt", "r", encoding="utf-8") as f:
         content = f.read()
     job_list = [job.strip() for job in content.split("---") if job.strip()]

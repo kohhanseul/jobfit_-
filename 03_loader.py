@@ -3,8 +3,6 @@
 from dotenv import load_dotenv
 # 파일을 읽어서 랭체인이 처리할 수 있는 형태로 변환하는 라이브러리
 from langchain_core.documents import Document
-#긴 문서를 작은 조각으로 나눠주는 라이브러리
-from langchain_text_splitters import CharacterTextSplitter
 
 load_dotenv()# 키 불러오기
 
