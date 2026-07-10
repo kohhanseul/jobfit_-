@@ -13,7 +13,6 @@ venv/
 # VS Code 설정
 .vscode/
 
-# 데이터 파일 (나중에 쓸 것)
-data/
-*.csv
-*.json
+# 생성 산출물 (벡터 인덱스, 백업)
+data/faiss_index/
+data/jobs_backup_with_samples.txt
