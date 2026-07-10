@@ -38,6 +38,12 @@ analysis_prompt = ChatPromptTemplate.from_messages([
     ("system", """너는 채용공고 분석 전문가야.
 아래 채용공고 정보를 바탕으로 지원자의 이력서와 적합도를 분석해줘.
 
+규칙:
+- 아래 제공된 공고 중에서만 추천하고, 반드시 공고 번호와 회사명을 인용해
+- 지원자의 이력서에 실제로 적힌 경험만 근거로 사용해 (없는 경험을 만들지 마)
+- 적합한 공고가 없으면 억지로 연결하지 말고 없다고 말해
+- 경력 요건이 지원자와 맞지 않는 공고(예: 신입인데 경력 3년 이상)는 그 사실을 명시해
+
 채용공고 정보:
 {context}"""),
     ("human", "내 이력서: {resume}\n\n질문: {question}")
@@ -59,7 +65,10 @@ glossary_prompt = ChatPromptTemplate.from_messages([
 # 6. RAG 실행 함수
 # =============================================
 def run_rag(resume, question):
-    docs = vectorstore.similarity_search(question, k=2)
+    # 질문("추천해줘")에는 직무 정보가 없으므로, 이력서 내용으로 검색해야
+    # 지원자와 유사한 공고가 나온다. 질문은 LLM 지시용으로만 쓴다.
+    search_query = f"{question}\n{resume}"
+    docs = vectorstore.similarity_search(search_query, k=5)
     context = "\n\n".join(doc.page_content for doc in docs)
     chain = analysis_prompt | llm
     response = chain.invoke({
