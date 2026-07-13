@@ -27,6 +27,7 @@
 - 07_langchain_ollama.py : LangChain + Ollama 연동
 - 08_streamlit_app.py : Streamlit UI
 - 09_eval.py : 검색 품질 평가 (hit@1, hit@k 측정)
+- 10_api.py : FastAPI 서빙 API (/search, /analyze JSON 엔드포인트)
 - data/jobs.txt : 실제 채용공고 49건 (2026-07 사람인 수집, 출처 URL 포함)
 - data/eval_set.json : 검색 평가용 질문-정답 10문항
 - docs/개선기록_2026-07-10.md : 검색 품질 개선 과정 기록 (문제, 해결, 결과)
