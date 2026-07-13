@@ -16,3 +16,6 @@ venv/
 # 생성 산출물 (벡터 인덱스, 백업)
 data/faiss_index/
 data/jobs_backup_with_samples.txt
+
+# 로그
+*.log
