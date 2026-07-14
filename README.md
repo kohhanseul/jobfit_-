@@ -85,3 +85,15 @@ streamlit run 08_streamlit_app.py
 - 이력서 PDF 업로드 기능
 - 클라우드 배포
 - 할루시네이션 방지를 위한 답변 출처 표시
+## Docker로 실행
+
+API 서버를 컨테이너로 실행할 수 있습니다. 로컬에 Ollama가 켜져 있어야 하며,
+컨테이너는 host.docker.internal 주소로 호스트의 Ollama에 연결합니다.
+
+```bash
+docker build -t jobfit-api .
+docker run -d --name jobfit-container -p 8000:8000 \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 jobfit-api
+```
+
+실행 후 http://localhost:8000/docs 에서 API 문서와 테스트 화면을 사용할 수 있습니다.
