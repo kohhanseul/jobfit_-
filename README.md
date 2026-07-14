@@ -88,8 +88,8 @@ streamlit run 08_streamlit_app.py
 
 ## Docker로 실행
 
-API 서버를 컨테이너로 실행할 수 있습니다. 로컬에 Ollama가 켜져 있어야 하며,
-컨테이너는 host.docker.internal 주소로 호스트의 Ollama에 연결합니다.
+api 서버 컨테이너로 실행 가능 (로컬 ollama 켜진 상태에서만)
+컨테이너 안에서는 localhost가 컨테이너 자신이라 host.docker.internal로 호스트 ollama에 연결
 
 ```bash
 docker build -t jobfit-api .
@@ -97,4 +97,4 @@ docker run -d --name jobfit-container -p 8000:8000 \
   -e OLLAMA_BASE_URL=http://host.docker.internal:11434 jobfit-api
 ```
 
-실행 후 http://localhost:8000/docs 에서 API 문서와 테스트 화면을 사용할 수 있습니다.
+실행 후 http://localhost:8000/docs 에서 테스트
