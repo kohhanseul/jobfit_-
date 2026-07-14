@@ -85,6 +85,7 @@ streamlit run 08_streamlit_app.py
 - 이력서 PDF 업로드 기능
 - 클라우드 배포
 - 할루시네이션 방지를 위한 답변 출처 표시
+
 ## Docker로 실행
 
 API 서버를 컨테이너로 실행할 수 있습니다. 로컬에 Ollama가 켜져 있어야 하며,
