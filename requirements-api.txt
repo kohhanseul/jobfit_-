@@ -1,0 +1,11 @@
+# API 서버(10_api.py) 전용 의존성.
+# 프로젝트 전체 requirements.txt에는 tensorflow, metadrive 등
+# 무거운 것들이 섞여 있어서, 도커 이미지에는 API에 필요한 것만 넣는다.
+# (이미지가 가벼울수록 빌드와 배포가 빠르다 = 이미지 다이어트)
+fastapi
+uvicorn
+langchain-core
+langchain-ollama
+langchain-community
+faiss-cpu
+pydantic

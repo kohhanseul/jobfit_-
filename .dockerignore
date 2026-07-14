@@ -1,0 +1,12 @@
+# 도시락에 넣지 않을 것들 (.gitignore의 도커판).
+# COPY 할 때 이 목록은 제외된다. 이미지를 가볍게 유지하는 용도.
+.git
+__pycache__
+*.pyc
+.env
+venv
+.venv
+data/faiss_index
+data/jobs_backup_with_samples.txt
+docs
+*.log

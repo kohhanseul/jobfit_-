@@ -26,6 +26,7 @@ JSON 창구(API)를 연다. 식당으로 비유하면 Streamlit은 홀 좌석이
 FastAPI가 자동으로 만든 API 문서와 테스트 화면이 나온다.
 """
 
+import os  # 환경변수(실행 환경이 넘겨주는 설정값)를 읽는 표준 도구
 import re  # 정규표현식: 문자열에서 패턴(예: [공고12])을 찾는 도구
 
 # FastAPI: 파이썬으로 API 창구를 만드는 프레임워크
@@ -46,6 +47,13 @@ from langchain_core.prompts import ChatPromptTemplate       # 프롬프트 틀
 JOBS_PATH = "data/jobs.txt"   # 채용공고 데이터 파일
 EMBED_MODEL = "bge-m3"        # 임베딩 모델 (한국어 검색 품질 때문에 선택, 09_eval.py 참고)
 LLM_MODEL = "qwen3"           # 분석 답변을 쓰는 로컬 LLM
+
+# Ollama 서버 주소. 평소(내 컴퓨터에서 직접 실행)에는 localhost면 되지만,
+# 도커 컨테이너 안에서 localhost는 "컨테이너 자신"을 가리켜서 Ollama를 못 찾는다.
+# 그래서 환경변수 OLLAMA_BASE_URL로 주소를 주입할 수 있게 한다.
+# 도커 실행 시: -e OLLAMA_BASE_URL=http://host.docker.internal:11434
+# (host.docker.internal = "이 도시락을 연 컴퓨터"를 가리키는 도커의 특수 주소)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 # FastAPI 앱 객체 = 창구 설계도의 본체.
 # title 등은 /docs 자동 문서에 표시된다.
@@ -73,7 +81,7 @@ def build_vectorstore():
     jobs = [j.strip() for j in content.split("---") if j.strip()]
     docs = [Document(page_content=j) for j in jobs]
 
-    embeddings = OllamaEmbeddings(model=EMBED_MODEL)
+    embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_BASE_URL)
     return FAISS.from_documents(docs, embeddings)
 
 
@@ -85,7 +93,7 @@ vectorstore = build_vectorstore()
 
 # temperature=0: LLM의 창의성 조절 손잡이. 0이면 같은 질문에 최대한
 # 일관된 답을 낸다. 분석 도구는 들쭉날쭉하면 안 되므로 0으로 고정.
-llm = ChatOllama(model=LLM_MODEL, temperature=0)
+llm = ChatOllama(model=LLM_MODEL, temperature=0, base_url=OLLAMA_BASE_URL)
 
 # 프롬프트 틀: {context}, {resume}, {question} 자리에 실제 값이 채워진다.
 # 규칙 4줄은 3차 개선에서 추가한 것 — LLM이 검색 결과를 억지로
