@@ -65,8 +65,8 @@ glossary_prompt = ChatPromptTemplate.from_messages([
 # 6. RAG 실행 함수
 # =============================================
 def run_rag(resume, question):
-    # 질문("추천해줘")에는 직무 정보가 없으므로, 이력서 내용으로 검색해야
-    # 지원자와 유사한 공고가 나온다. 질문은 LLM 지시용으로만 쓴다.
+    # 질문만으로 검색하면 안 됨 ("추천해줘"에는 직무 정보가 없음)
+    # -> 질문+이력서로 검색. 이력서가 진짜 검색 신호
     search_query = f"{question}\n{resume}"
     docs = vectorstore.similarity_search(search_query, k=5)
     context = "\n\n".join(doc.page_content for doc in docs)

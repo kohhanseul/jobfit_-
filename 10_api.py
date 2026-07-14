@@ -1,6 +1,7 @@
 """JobFit API 서버 (FastAPI)
 
-스트림릿은 사람용 화면, 이건 프로그램용 JSON 창구. 주방(검색+LLM)은 공유
+스트림릿은 사람이 쓰는 화면, 이건 다른 프로그램이 호출하는 JSON API
+검색 + LLM 로직은 스트림릿 앱과 동일
 
 실행: uvicorn 10_api:app --host 0.0.0.0 --port 8000
   - uvicorn = FastAPI 앱 돌려주는 웹서버
