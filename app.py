@@ -14,11 +14,21 @@ from llm_provider import get_embeddings, get_llm, mode_label
 st.set_page_config(page_title="JobFit - 채용공고 분석기", page_icon="💼", layout="wide")
 
 
+import os
+
+# jobs.txt 경로 찾기 (data/ 안에 있든 루트에 있든)
+def find_jobs_file():
+    for p in ("data/jobs.txt", "jobs.txt"):
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError("jobs.txt를 찾을 수 없음 (data/jobs.txt 또는 jobs.txt)")
+
+
 # 벡터DB 로드 (서버 시작 시 1회, cache_resource로 재사용)
 @st.cache_resource
 def load_vectorstore():
     embeddings = get_embeddings()
-    with open("data/jobs.txt", "r", encoding="utf-8") as f:
+    with open(find_jobs_file(), "r", encoding="utf-8") as f:
         content = f.read()
     job_list = [job.strip() for job in content.split("---") if job.strip()]
     documents = [Document(page_content=job) for job in job_list]
