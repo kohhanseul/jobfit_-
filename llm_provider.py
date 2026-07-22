@@ -14,13 +14,27 @@ IS_CLOUD = bool(os.getenv("GROQ_API_KEY"))
 
 
 def get_embeddings():
-    # 검색용 임베딩. 두 모드 다 같은 모델(bge-m3) -> hit@1 90% 유지
+    # 검색용 임베딩
+    #   로컬: bge-m3 (Ollama)                  -> hit@1 90%
+    #   클라우드: multilingual-e5-small        -> hit@1 90% (09_eval 재측정)
+    #     bge-m3(2.3GB)는 Streamlit Cloud 메모리에 안 들어가서 470MB짜리로 교체
+    #     e5 계열은 query:/passage: 프리픽스가 있어야 이 성능이 나옴 -> 아래서 처리
     if IS_CLOUD:
-        # 클라우드: sentence-transformers로 bge-m3를 서버에서 직접 실행 (API 아님)
         from langchain_huggingface import HuggingFaceEmbeddings
-        return HuggingFaceEmbeddings(model_name="BAAI/bge-m3")
+        from langchain_core.embeddings import Embeddings
+
+        base = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-small")
+
+        class E5Prefixed(Embeddings):
+            # 검색은 벡터DB가 embed_query/embed_documents를 대신 불러줌 -> 여기서 프리픽스 자동 부착
+            def embed_documents(self, texts):
+                return base.embed_documents([f"passage: {t}" for t in texts])
+
+            def embed_query(self, text):
+                return base.embed_query(f"query: {text}")
+
+        return E5Prefixed()
     else:
-        # 로컬: Ollama의 bge-m3
         from langchain_ollama import OllamaEmbeddings
         return OllamaEmbeddings(model="bge-m3")
 
