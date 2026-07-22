@@ -54,5 +54,5 @@ def get_llm():
 
 
 def mode_label():
-    # UI 표시용
-    return "클라우드 모드 (bge-m3 + Groq)" if IS_CLOUD else "로컬 모드 (Ollama)"
+    # UI 표시용 (실제 쓰는 모델명과 일치해야 함)
+    return "클라우드 모드 (e5-small + Groq)" if IS_CLOUD else "로컬 모드 (Ollama)"
