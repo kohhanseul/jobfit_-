@@ -1,8 +1,22 @@
 # JobFit - 채용공고 분석 RAG 챗봇
 
+**▶ 라이브 데모: https://p9kr69lbjsctwed7azrt66.streamlit.app/**
+(이력서 넣고 "분석 시작" 누르면 실제 공고 49건 중 적합 공고 추천)
+
 이력서와 채용공고 비교해서 적합도 분석해주는 챗봇
 키워드 매칭이 아니라 의미 기반 검색(RAG)으로 관련 공고 찾음
-로컬 LLM(Ollama) 기반이라 API 비용 없이 동작
+로컬은 Ollama로 완전 오프라인, 배포 데모는 오픈모델 무료 호스팅(Groq)으로 실행
+
+## 배포 (2모드)
+
+같은 코드가 환경변수(GROQ_API_KEY) 유무로 자동 전환됨
+
+| | 임베딩 | LLM | 비고 |
+|---|---|---|---|
+| 로컬 | bge-m3 (Ollama) | qwen3 (Ollama) | 완전 오프라인, hit@1 90% |
+| 클라우드 (Streamlit) | multilingual-e5-small | Groq (오픈모델) | 무료 티어 메모리 대응, hit@1 90% 재측정 |
+
+상용 유료 API는 안 씀. 오픈소스 모델을 로컬은 Ollama, 클라우드는 Groq 무료 티어로 호스팅
 
 ## 기술 스택
 
