@@ -1,0 +1,16 @@
+# JobFit 전체 앱 실행용 (HF Spaces 배포 포함)
+# API 서버만 도커로 띄울 땐 requirements-api.txt 사용
+
+streamlit
+langchain
+langchain-core
+langchain-community
+faiss-cpu
+
+# 로컬 모드 (Ollama)
+langchain-ollama
+
+# 클라우드 모드 (HF Spaces): 임베딩은 서버 CPU, LLM은 Groq
+langchain-huggingface
+sentence-transformers
+langchain-groq
