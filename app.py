@@ -4,8 +4,16 @@
 #   - HF Spaces: GROQ_API_KEY 설정 시 자동으로 클라우드 모드
 
 import base64  # 이미지를 텍스트(문자열)로 인코딩해서 LLM에 보내기 위함
+from io import BytesIO  # 붙여넣기된 이미지(PIL)를 바이트로 바꾸기 위함
 
 import streamlit as st
+
+# 클립보드 붙여넣기 부품 (없으면 파일 업로드만 사용)
+try:
+    from streamlit_paste_button import paste_image_button
+    HAS_PASTE = True
+except ImportError:
+    HAS_PASTE = False
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
@@ -179,15 +187,25 @@ with tab_fit:
         posting = st.text_area(
             "공고 내용 붙여넣기",
             placeholder="담당업무, 자격요건, 우대사항 붙여넣기",
-            height=180,
+            height=140,
             key="posting_fit",
         )
-        # 복사 안 되는 공고 대응: 스크린샷 업로드 (멀티모달 입력)
+        # 복사 안 되는 공고 대응 (멀티모달 입력): 이미지 바이트를 붙여넣기 또는 업로드로 받음
+        img_bytes = None
+        img_mime = "image/png"
+        if HAS_PASTE:
+            st.caption("공고 복사 안 되면: Win+Shift+S로 캡처 후 아래 버튼")
+            paste_result = paste_image_button("📋 클립보드 이미지 붙여넣기", key="paste_fit")
+            if paste_result.image_data is not None:
+                buf = BytesIO()
+                paste_result.image_data.save(buf, format="PNG")  # PIL 이미지 -> PNG 바이트
+                img_bytes = buf.getvalue()
         posting_img = st.file_uploader(
-            "또는 공고 스크린샷 업로드 (복사 안 될 때)",
-            type=["png", "jpg", "jpeg"],
-            key="img_fit",
+            "또는 파일로 업로드", type=["png", "jpg", "jpeg"], key="img_fit"
         )
+        if posting_img is not None:
+            img_bytes = posting_img.getvalue()
+            img_mime = posting_img.type
     with col4:
         st.subheader("📄 내 이력서")
         resume_f = st.text_area(
@@ -200,9 +218,9 @@ with tab_fit:
 
     if fit_go:
         with st.spinner("분석 중..."):
-            if posting_img is not None:
+            if img_bytes is not None:
                 # 이미지 경로: 비전 LLM이 스크린샷을 직접 읽어서 분석 (OCR + 비교 한 번에)
-                b64 = base64.b64encode(posting_img.getvalue()).decode()
+                b64 = base64.b64encode(img_bytes).decode()
                 # 멀티모달 메시지 형식: 텍스트 조각 + 이미지 조각을 한 메시지에 리스트로
                 messages = [
                     SystemMessage(content=FIT_SYSTEM),
@@ -210,7 +228,7 @@ with tab_fit:
                         {"type": "text",
                          "text": f"아래 이미지는 채용공고 스크린샷이야. 공고를 읽고 내 이력서와 비교해줘.\n\n지원자 이력서:\n{resume_f}"},
                         {"type": "image_url",
-                         "image_url": {"url": f"data:{posting_img.type};base64,{b64}"}},
+                         "image_url": {"url": f"data:{img_mime};base64,{b64}"}},
                     ]),
                 ]
                 st.session_state.fit_result = get_vision_llm().invoke(messages).content
