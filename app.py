@@ -3,13 +3,15 @@
 #   - 로컬 실행: streamlit run app.py  (Ollama)
 #   - HF Spaces: GROQ_API_KEY 설정 시 자동으로 클라우드 모드
 
+import base64  # 이미지를 텍스트(문자열)로 인코딩해서 LLM에 보내기 위함
+
 import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-from llm_provider import get_embeddings, get_llm, mode_label
+from llm_provider import get_embeddings, get_llm, get_vision_llm, mode_label
 
 st.set_page_config(page_title="JobFit - 채용공고 분석기", page_icon="💼", layout="wide")
 
@@ -70,11 +72,10 @@ glossary_prompt = ChatPromptTemplate.from_messages([
     ("human", "{question}")
 ])
 
-# 공고 직접 분석용 프롬프트 (공고 1개 + 이력서 1개 직접 비교. 검색/DB 필요 없음)
+# 공고 직접 분석용 규칙 (텍스트 붙여넣기 / 이미지 업로드 양쪽이 같은 규칙 씀)
 # 부족한 점을 짚는 방향이라 "강점 지어내기"보다 할루시네이션이 덜함
-fit_prompt = ChatPromptTemplate.from_messages([
-    ("system", """너는 채용 적합도 분석 전문가야.
-아래 채용공고와 지원자 이력서를 비교해서 분석해줘.
+FIT_SYSTEM = """너는 채용 적합도 분석 전문가야.
+채용공고와 지원자 이력서를 비교해서 분석해줘.
 
 규칙:
 - 이력서에 실제로 적힌 내용만 근거로 사용 (없는 경험을 지어내지 마)
@@ -87,7 +88,11 @@ fit_prompt = ChatPromptTemplate.from_messages([
 공고가 요구하는데 이력서에 없거나 약한 부분. 솔직하게
 
 ## 보완 제안
-부족한 점을 자소서나 준비로 어떻게 메울지 구체적으로 (없는 경험을 만들라는 게 아니라, 가진 것 중 뭘 강조하거나 뭘 배우면 되는지)"""),
+부족한 점을 자소서나 준비로 어떻게 메울지 구체적으로 (없는 경험을 만들라는 게 아니라, 가진 것 중 뭘 강조하거나 뭘 배우면 되는지)"""
+
+# 텍스트 붙여넣기용 프롬프트
+fit_prompt = ChatPromptTemplate.from_messages([
+    ("system", FIT_SYSTEM),
     ("human", "채용공고:\n{posting}\n\n지원자 이력서:\n{resume}")
 ])
 
@@ -167,15 +172,21 @@ with tab_recommend:
         st.markdown(st.session_state.recommend_result)
 
 with tab_fit:
-    st.caption("관심 있는 공고를 붙여넣으면 내 이력서와 비교해 강점/부족한 점/보완법을 알려줌")
+    st.caption("공고를 붙여넣거나 스크린샷을 올리면, 내 이력서와 비교해 강점/부족한 점/보완법을 알려줌")
     col3, col4 = st.columns(2)
     with col3:
         st.subheader("📌 채용공고")
         posting = st.text_area(
-            "공고 내용을 붙여넣으세요",
-            placeholder="지원하려는 공고의 담당업무, 자격요건, 우대사항을 그대로 붙여넣기",
-            height=260,
+            "공고 내용 붙여넣기",
+            placeholder="담당업무, 자격요건, 우대사항 붙여넣기",
+            height=180,
             key="posting_fit",
+        )
+        # 복사 안 되는 공고 대응: 스크린샷 업로드 (멀티모달 입력)
+        posting_img = st.file_uploader(
+            "또는 공고 스크린샷 업로드 (복사 안 될 때)",
+            type=["png", "jpg", "jpeg"],
+            key="img_fit",
         )
     with col4:
         st.subheader("📄 내 이력서")
@@ -189,10 +200,29 @@ with tab_fit:
 
     if fit_go:
         with st.spinner("분석 중..."):
-            chain = fit_prompt | llm
-            st.session_state.fit_result = chain.invoke(
-                {"posting": posting, "resume": resume_f}
-            ).content
+            if posting_img is not None:
+                # 이미지 경로: 비전 LLM이 스크린샷을 직접 읽어서 분석 (OCR + 비교 한 번에)
+                b64 = base64.b64encode(posting_img.getvalue()).decode()
+                # 멀티모달 메시지 형식: 텍스트 조각 + 이미지 조각을 한 메시지에 리스트로
+                messages = [
+                    SystemMessage(content=FIT_SYSTEM),
+                    HumanMessage(content=[
+                        {"type": "text",
+                         "text": f"아래 이미지는 채용공고 스크린샷이야. 공고를 읽고 내 이력서와 비교해줘.\n\n지원자 이력서:\n{resume_f}"},
+                        {"type": "image_url",
+                         "image_url": {"url": f"data:{posting_img.type};base64,{b64}"}},
+                    ]),
+                ]
+                st.session_state.fit_result = get_vision_llm().invoke(messages).content
+            elif posting.strip():
+                # 텍스트 경로: 기존 방식
+                chain = fit_prompt | llm
+                st.session_state.fit_result = chain.invoke(
+                    {"posting": posting, "resume": resume_f}
+                ).content
+            else:
+                st.warning("공고를 붙여넣거나 스크린샷을 올려주세요")
+
     if "fit_result" in st.session_state:
         st.markdown(st.session_state.fit_result)
 

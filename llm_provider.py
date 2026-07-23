@@ -53,6 +53,21 @@ def get_llm():
         return ChatOllama(model="qwen3", temperature=0)
 
 
+def get_vision_llm():
+    # 이미지(공고 스크린샷)를 읽는 멀티모달 LLM
+    #   클라우드: Groq 비전 모델 (Llama 3.2 Vision). 모델명 바뀌면 GROQ_VISION_MODEL로 교체
+    #   로컬: Ollama 비전 모델 (ollama pull llama3.2-vision 필요)
+    if IS_CLOUD:
+        from langchain_groq import ChatGroq
+        # qwen3.6-27b: Groq의 현재 멀티모달 모델(텍스트+이미지). 종료되면 GROQ_VISION_MODEL로 교체
+        model = os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.6-27b")
+        return ChatGroq(model=model, temperature=0)
+    else:
+        from langchain_ollama import ChatOllama
+        model = os.getenv("OLLAMA_VISION_MODEL", "llama3.2-vision")
+        return ChatOllama(model=model, temperature=0)
+
+
 def mode_label():
     # UI 표시용 (실제 쓰는 모델명과 일치해야 함)
     return "클라우드 모드 (e5-small + Groq)" if IS_CLOUD else "로컬 모드 (Ollama)"
