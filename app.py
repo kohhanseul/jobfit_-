@@ -4,16 +4,9 @@
 #   - HF Spaces: GROQ_API_KEY 설정 시 자동으로 클라우드 모드
 
 import base64  # 이미지를 텍스트(문자열)로 인코딩해서 LLM에 보내기 위함
-from io import BytesIO  # 붙여넣기된 이미지(PIL)를 바이트로 바꾸기 위함
+import re  # <think> 블록 제거용
 
 import streamlit as st
-
-# 클립보드 붙여넣기 부품 (없으면 파일 업로드만 사용)
-try:
-    from streamlit_paste_button import paste_image_button
-    HAS_PASTE = True
-except ImportError:
-    HAS_PASTE = False
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
@@ -22,6 +15,11 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from llm_provider import get_embeddings, get_llm, get_vision_llm, mode_label
 
 st.set_page_config(page_title="JobFit - 채용공고 분석기", page_icon="💼", layout="wide")
+
+
+def clean_output(text):
+    # qwen 계열(qwen3, qwen3.6-27b)이 <think>...</think>로 추론 과정을 출력함 -> 최종 답변만 남김
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
 
 
 import os
@@ -112,7 +110,7 @@ def run_rag(resume, question):
     context = "\n\n".join(doc.page_content for doc in docs)
     chain = analysis_prompt | llm
     response = chain.invoke({"context": context, "resume": resume, "question": question})
-    return response.content
+    return clean_output(response.content)
 
 
 # 사이드바 - 기술 용어 도우미
@@ -137,7 +135,7 @@ with st.sidebar:
         st.session_state.chat_history.append(HumanMessage(content=user_input))
         with st.spinner("답변 생성 중..."):
             chain = glossary_prompt | llm
-            answer = chain.invoke({"question": user_input}).content
+            answer = clean_output(chain.invoke({"question": user_input}).content)
         st.session_state.chat_history.append(AIMessage(content=answer))
         st.rerun()
 
@@ -187,21 +185,15 @@ with tab_fit:
         posting = st.text_area(
             "공고 내용 붙여넣기",
             placeholder="담당업무, 자격요건, 우대사항 붙여넣기",
-            height=140,
+            height=180,
             key="posting_fit",
         )
-        # 복사 안 되는 공고 대응 (멀티모달 입력): 이미지 바이트를 붙여넣기 또는 업로드로 받음
+        # 복사 안 되는 공고 대응 (멀티모달 입력): 스크린샷 파일 업로드
+        st.caption("복사 안 되는 공고는 스크린샷을 파일로 업로드")
         img_bytes = None
         img_mime = "image/png"
-        if HAS_PASTE:
-            st.caption("공고 복사 안 되면: Win+Shift+S로 캡처 후 아래 버튼")
-            paste_result = paste_image_button("📋 클립보드 이미지 붙여넣기", key="paste_fit")
-            if paste_result.image_data is not None:
-                buf = BytesIO()
-                paste_result.image_data.save(buf, format="PNG")  # PIL 이미지 -> PNG 바이트
-                img_bytes = buf.getvalue()
         posting_img = st.file_uploader(
-            "또는 파일로 업로드", type=["png", "jpg", "jpeg"], key="img_fit"
+            "공고 스크린샷 업로드", type=["png", "jpg", "jpeg"], key="img_fit"
         )
         if posting_img is not None:
             img_bytes = posting_img.getvalue()
@@ -231,13 +223,15 @@ with tab_fit:
                          "image_url": {"url": f"data:{img_mime};base64,{b64}"}},
                     ]),
                 ]
-                st.session_state.fit_result = get_vision_llm().invoke(messages).content
+                st.session_state.fit_result = clean_output(
+                    get_vision_llm().invoke(messages).content
+                )
             elif posting.strip():
                 # 텍스트 경로: 기존 방식
                 chain = fit_prompt | llm
-                st.session_state.fit_result = chain.invoke(
-                    {"posting": posting, "resume": resume_f}
-                ).content
+                st.session_state.fit_result = clean_output(
+                    chain.invoke({"posting": posting, "resume": resume_f}).content
+                )
             else:
                 st.warning("공고를 붙여넣거나 스크린샷을 올려주세요")
 

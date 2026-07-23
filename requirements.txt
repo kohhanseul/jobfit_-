@@ -14,6 +14,3 @@ langchain-ollama
 langchain-huggingface
 sentence-transformers
 langchain-groq
-
-# 공고 스크린샷 클립보드 붙여넣기 (멀티모달 입력)
-streamlit-paste-button
