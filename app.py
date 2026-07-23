@@ -70,6 +70,27 @@ glossary_prompt = ChatPromptTemplate.from_messages([
     ("human", "{question}")
 ])
 
+# 공고 직접 분석용 프롬프트 (공고 1개 + 이력서 1개 직접 비교. 검색/DB 필요 없음)
+# 부족한 점을 짚는 방향이라 "강점 지어내기"보다 할루시네이션이 덜함
+fit_prompt = ChatPromptTemplate.from_messages([
+    ("system", """너는 채용 적합도 분석 전문가야.
+아래 채용공고와 지원자 이력서를 비교해서 분석해줘.
+
+규칙:
+- 이력서에 실제로 적힌 내용만 근거로 사용 (없는 경험을 지어내지 마)
+- 공고 요구사항을 기준으로, 아래 세 항목으로 나눠서 답해:
+
+## 강점
+공고 요건 중 이력서가 충족하는 부분. 공고 문구를 인용하고 이력서의 어떤 경험이 맞는지 연결
+
+## 부족한 점
+공고가 요구하는데 이력서에 없거나 약한 부분. 솔직하게
+
+## 보완 제안
+부족한 점을 자소서나 준비로 어떻게 메울지 구체적으로 (없는 경험을 만들라는 게 아니라, 가진 것 중 뭘 강조하거나 뭘 배우면 되는지)"""),
+    ("human", "채용공고:\n{posting}\n\n지원자 이력서:\n{resume}")
+])
+
 
 def run_rag(resume, question):
     # 질문+이력서로 검색 (질문만으로는 직무 정보가 없음)
@@ -116,24 +137,63 @@ with st.sidebar:
 st.title("💼 JobFit - 채용공고 분석기")
 st.caption(f"이력서와 채용공고 적합도 분석  ·  실행: {mode_label()}")
 
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("📄 내 이력서")
-    resume = st.text_area(
-        "이력서 내용을 입력하세요",
-        placeholder="예: 전자공학 전공, Python/PyTorch, LangChain 기반 RAG 챗봇 개인 프로젝트, EDA와 시계열 분석 경험. AI 엔지니어 신입 지원.",
-        height=200,
-    )
-with col2:
-    st.subheader("🔍 질문")
-    question = st.text_input("질문을 입력하세요", value="내 이력서에 맞는 공고 추천해줘")
-    analyze = st.button("분석 시작 🚀", use_container_width=True)
+# st.tabs: 한 앱 안에서 기능을 탭으로 나눔
+#   탭1 = 공고 추천 (내 이력서 -> DB 49건 중 맞는 공고 검색, RAG 사용)
+#   탭2 = 공고 직접 분석 (공고 붙여넣기 -> 이력서와 1:1 비교, 검색/DB 불필요)
+# 탭2는 공고 DB가 필요 없어서, 채용 API 없이도 아무 공고나 분석 가능
+tab_recommend, tab_fit = st.tabs(["📋 공고 추천", "🔍 공고 직접 분석"])
 
-if analyze:
-    with st.spinner("분석 중..."):
-        st.session_state.analysis_result = run_rag(resume, question)
+with tab_recommend:
+    st.caption("내 이력서를 넣으면 수집된 공고 49건 중 맞는 걸 찾아줌")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("📄 내 이력서")
+        resume_r = st.text_area(
+            "이력서 내용을 입력하세요",
+            placeholder="예: 전자공학 전공, Python/PyTorch, LangChain 기반 RAG 챗봇 개인 프로젝트, EDA와 시계열 분석 경험. AI 엔지니어 신입 지원.",
+            height=200,
+            key="resume_recommend",  # 탭마다 입력칸이 겹치지 않게 key 지정
+        )
+    with col2:
+        st.subheader("🔍 질문")
+        question = st.text_input("질문", value="내 이력서에 맞는 공고 추천해줘", key="q_recommend")
+        analyze = st.button("추천 시작 🚀", use_container_width=True, key="btn_recommend")
 
-if "analysis_result" in st.session_state:
-    st.subheader("📊 분석 결과")
-    st.markdown(st.session_state.analysis_result)
-    st.info("💡 왼쪽 사이드바에서 궁금한 기술 용어를 바로 물어보세요!")
+    if analyze:
+        with st.spinner("분석 중..."):
+            st.session_state.recommend_result = run_rag(resume_r, question)
+    if "recommend_result" in st.session_state:
+        st.subheader("📊 추천 결과")
+        st.markdown(st.session_state.recommend_result)
+
+with tab_fit:
+    st.caption("관심 있는 공고를 붙여넣으면 내 이력서와 비교해 강점/부족한 점/보완법을 알려줌")
+    col3, col4 = st.columns(2)
+    with col3:
+        st.subheader("📌 채용공고")
+        posting = st.text_area(
+            "공고 내용을 붙여넣으세요",
+            placeholder="지원하려는 공고의 담당업무, 자격요건, 우대사항을 그대로 붙여넣기",
+            height=260,
+            key="posting_fit",
+        )
+    with col4:
+        st.subheader("📄 내 이력서")
+        resume_f = st.text_area(
+            "이력서 내용을 입력하세요",
+            placeholder="내 경험, 기술 스택, 프로젝트를 적기",
+            height=260,
+            key="resume_fit",
+        )
+    fit_go = st.button("적합도 분석 🎯", use_container_width=True, key="btn_fit")
+
+    if fit_go:
+        with st.spinner("분석 중..."):
+            chain = fit_prompt | llm
+            st.session_state.fit_result = chain.invoke(
+                {"posting": posting, "resume": resume_f}
+            ).content
+    if "fit_result" in st.session_state:
+        st.markdown(st.session_state.fit_result)
+
+st.info("💡 왼쪽 사이드바에서 궁금한 기술 용어를 바로 물어보세요!")
