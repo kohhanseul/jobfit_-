@@ -10,7 +10,7 @@ import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from llm_provider import get_embeddings, get_llm, get_vision_llm, mode_label
 
@@ -213,24 +213,23 @@ with tab_fit:
     if fit_go:
         with st.spinner("분석 중..."):
             if img_bytes is not None:
-                # 이미지 경로: 비전 LLM이 스크린샷을 직접 읽어서 분석 (OCR + 비교 한 번에)
+                # 이미지 경로 2단계 (qwen이 분석까지 하면 생각이 너무 길어 터짐)
+                #   1단계: 비전 모델(qwen)은 스크린샷에서 공고 텍스트만 추출 (짧은 작업)
+                #   2단계: 분석은 잘 되는 텍스트 모델(llama)이 담당 -> 안정적
                 b64 = base64.b64encode(img_bytes).decode()
-                # 멀티모달 메시지 형식: 텍스트 조각 + 이미지 조각을 한 메시지에 리스트로
-                messages = [
-                    SystemMessage(content=FIT_SYSTEM),
-                    HumanMessage(content=[
-                        {"type": "text",
-                         # /no_think: qwen 계열의 생각 모드를 꺼서 바로 답변 내게 함
-                         "text": f"/no_think\n아래 이미지는 채용공고 스크린샷이야. 공고를 읽고 내 이력서와 비교해줘.\n\n지원자 이력서:\n{resume_f}"},
-                        {"type": "image_url",
-                         "image_url": {"url": f"data:{img_mime};base64,{b64}"}},
-                    ]),
-                ]
+                ocr_msg = [HumanMessage(content=[
+                    {"type": "text",
+                     "text": "이 이미지 속 채용공고 내용을 그대로 텍스트로만 출력해줘. 분석하거나 설명하지 말고 공고 원문만."},
+                    {"type": "image_url",
+                     "image_url": {"url": f"data:{img_mime};base64,{b64}"}},
+                ])]
+                posting_text = clean_output(get_vision_llm().invoke(ocr_msg).content)
+                chain = fit_prompt | llm  # llm = 텍스트 모델(llama)
                 st.session_state.fit_result = clean_output(
-                    get_vision_llm().invoke(messages).content
+                    chain.invoke({"posting": posting_text, "resume": resume_f}).content
                 )
             elif posting.strip():
-                # 텍스트 경로: 기존 방식
+                # 텍스트 경로: 붙여넣은 공고를 바로 분석
                 chain = fit_prompt | llm
                 st.session_state.fit_result = clean_output(
                     chain.invoke({"posting": posting, "resume": resume_f}).content
