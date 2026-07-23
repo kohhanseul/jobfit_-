@@ -19,7 +19,9 @@ st.set_page_config(page_title="JobFit - 채용공고 분석기", page_icon="💼
 
 def clean_output(text):
     # qwen 계열(qwen3, qwen3.6-27b)이 <think>...</think>로 추론 과정을 출력함 -> 최종 답변만 남김
-    return re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.S)  # 닫힌 것 제거
+    text = re.sub(r"<think>.*$", "", text, flags=re.S)  # 토큰 잘려서 안 닫힌 것도 제거
+    return text.strip()
 
 
 import os
@@ -218,7 +220,8 @@ with tab_fit:
                     SystemMessage(content=FIT_SYSTEM),
                     HumanMessage(content=[
                         {"type": "text",
-                         "text": f"아래 이미지는 채용공고 스크린샷이야. 공고를 읽고 내 이력서와 비교해줘.\n\n지원자 이력서:\n{resume_f}"},
+                         # /no_think: qwen 계열의 생각 모드를 꺼서 바로 답변 내게 함
+                         "text": f"/no_think\n아래 이미지는 채용공고 스크린샷이야. 공고를 읽고 내 이력서와 비교해줘.\n\n지원자 이력서:\n{resume_f}"},
                         {"type": "image_url",
                          "image_url": {"url": f"data:{img_mime};base64,{b64}"}},
                     ]),

@@ -60,8 +60,9 @@ def get_vision_llm():
     if IS_CLOUD:
         from langchain_groq import ChatGroq
         # qwen3.6-27b: Groq의 현재 멀티모달 모델(텍스트+이미지). 종료되면 GROQ_VISION_MODEL로 교체
+        # max_tokens 넉넉히: 생각(reasoning)에 토큰 다 쓰고 답변 못 내는 것 방지
         model = os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.6-27b")
-        return ChatGroq(model=model, temperature=0)
+        return ChatGroq(model=model, temperature=0, max_tokens=4096)
     else:
         from langchain_ollama import ChatOllama
         model = os.getenv("OLLAMA_VISION_MODEL", "llama3.2-vision")
