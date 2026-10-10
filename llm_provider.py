@@ -54,8 +54,8 @@ def get_llm():
 
 
 def get_vision_llm():
-    # 이미지(공고 스크린샷)를 읽는 멀티모달 LLM
-    #   클라우드: Groq 비전 모델 (Llama 3.2 Vision). 모델명 바뀌면 GROQ_VISION_MODEL로 교체
+    # 이미지(공고 스크린샷)에서 공고 텍스트만 추출하는 멀티모달 LLM (분석은 get_llm 텍스트 모델 담당)
+    #   클라우드: Groq 비전 모델 (qwen3.6-27b). 모델명 바뀌면 GROQ_VISION_MODEL로 교체
     #   로컬: Ollama 비전 모델 (ollama pull llama3.2-vision 필요)
     if IS_CLOUD:
         from langchain_groq import ChatGroq
