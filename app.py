@@ -240,5 +240,7 @@ with tab_fit:
 
     if "fit_result" in st.session_state:
         st.markdown(st.session_state.fit_result)
+        # 강점 할루시네이션 대응: 프롬프트 제한으로도 완전히 안 사라짐 -> 사용 규칙을 화면에 표시
+        st.caption("⚠️ 부족한 점은 그대로 참고해도 되지만, 강점은 이력서에 실제로 있는 내용인지 직접 확인하세요 (LLM이 없는 경험을 강점으로 지어낼 수 있음)")
 
 st.info("💡 왼쪽 사이드바에서 궁금한 기술 용어를 바로 물어보세요!")
